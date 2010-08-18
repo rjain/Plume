@@ -19,6 +19,7 @@ package com.tdunning.plume.local.eager;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import com.tdunning.plume.types.PCollectionType;
 import com.tdunning.plume.types.PTableType;
@@ -31,12 +32,21 @@ import com.tdunning.plume.PTable;
 import com.tdunning.plume.Pair;
 import com.tdunning.plume.Tuple2;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Completely local eager version of a PTable.
+ */
+/**
+ * @author rjain
+ *
+ * @param <K>
+ * @param <V>
  */
 public class LocalTable<K, V> extends LocalCollection<Pair<K, V>> implements PTable<K, V> {
 
@@ -106,9 +116,9 @@ public class LocalTable<K, V> extends LocalCollection<Pair<K, V>> implements PTa
     return LocalTable.wrap(r);
   }
 
-  private static <K, V> PTable<K, Iterable<V>> wrap(Map<K, List<V>> data) {
+  private static <K, V> PTable<K, Iterable<V>> wrap(Map<K,? extends Collection<V>> data) {
     LocalTable<K, Iterable<V>> r = new LocalTable<K, Iterable<V>>();
-    List<Pair<K, Iterable<V>>> list = r.getData();
+    Collection<Pair<K, Iterable<V>>> list = r.getData();
     for (K k : data.keySet()) {
       list.add(Pair.<K, Iterable<V>>create(k, data.get(k)));
     }
@@ -123,8 +133,20 @@ public class LocalTable<K, V> extends LocalCollection<Pair<K, V>> implements PTa
    */
   @Override
   public PTable<K, Iterable<V>> groupByKey(Ordering<V> order) {
-    throw new UnsupportedOperationException("Not implemented yet ... help by making this work");
+	  // can't use a guava multimap here because identical key,value pairs would be suppressed.
+	    Map<K, Set<V>> r = Maps.newHashMap();
+	    for (Pair<K, V> v : data) {
+	    Set<V> values = r.get(v.getKey());
+	      if (values == null) {
+	    	values =  Sets.newTreeSet(order);
+	        r.put(v.getKey(), values);
+	      }
+	      // additions happen in sorted manner
+	      values.add(v.getValue());
+	    }
+	    return LocalTable.wrap(r);
   }
+  
 
   /**
    * Applies (possibly recursively) an associative function to elements of lists contained in a

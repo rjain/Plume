@@ -21,6 +21,7 @@ package com.tdunning.plume;
 * Placeholder interface for ordering collection results.  We should investigate what
  * guava provides with respect to ordering predicates before deciding whether to just
  * use java Comparator's.
+ * Currently using google collections Ordering class for prototyping 
 */
-public abstract class Ordering<V> {
+public abstract class Ordering<V> extends com.google.common.collect.Ordering<V> {
 }

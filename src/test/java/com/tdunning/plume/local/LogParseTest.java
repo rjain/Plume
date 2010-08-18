@@ -33,7 +33,12 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import static com.tdunning.plume.Plume.strings;
+import static org.junit.Assert.*;
 
+/**
+ * @author rjain
+ * Test to verify  grouping and ordering of elements within each group 
+ */
 public class LogParseTest {
   @Test
   public void parseGroupSort() throws IOException {
@@ -42,14 +47,27 @@ public class LogParseTest {
     PTable<String, Event> events = logs.map(new DoFn<String, Pair<String, Event>>() {
       @Override
       public void process(String logLine, EmitFn<Pair<String, Event>> emitter) {
-        Event e = new Event(logLine);
-        emitter.emit(new Pair<String, Event>(e.getName(), e));
+    	if (logLine.length()>0) {  
+    		Event e = new Event(logLine);
+    		emitter.emit(new Pair<String, Event>(e.getName(), e));
+    	}
       }
     }, Plume.tableOf(strings(), strings()));
 
-    PTable<String, Iterable<Event>> byName = events.groupByKey(new Ordering<Event>() {
-      // what goes here??
-    });
+    Ordering<Event> ordering = new Ordering<Event>() {
+    	public int compare(Event left, Event right) {
+  	      return left.compareTo(right);
+       };
+    };
+    
+    PTable<String, Iterable<Event>> byName = events.groupByKey(ordering); 
+    
+    for (Pair<String,Iterable<Event>>logIter: byName) {
+    	//String nameKey = logIter.getKey();
+    	Iterable<Event> chatEvents = logIter.getValue();
+    	// check if ordering indeed happened in the result
+    	assertTrue(ordering.isOrdered(chatEvents));
+    }
   }
 
   private static final class Event implements Comparable<Event> {
@@ -59,6 +77,7 @@ public class LogParseTest {
     private String msg;
 
     public Event(String logLine) {
+      //System.out.println(logLine);
       Iterator<String> pieces = onWhiteSpace.split(logLine).iterator();
       time = pieces.next();
       name = pieces.next();
@@ -69,9 +88,13 @@ public class LogParseTest {
       return name;
     }
 
-    @Override
+    public String getTime() {
+		return time;
+	} 
+
+	@Override
     public int compareTo(Event o) {
-      return this.time.compareTo(o.time);
+      return this.time.compareTo(o.getTime());
     }
   }
 }

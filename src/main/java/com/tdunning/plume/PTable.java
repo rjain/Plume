@@ -61,6 +61,8 @@ public interface PTable<K, V> extends PCollection<Pair<K, V>>, Iterable<Pair<K, 
 
   // TODO how can we state that V is Iterable<X> for this one method?
 
+ // public PTable<K,V> flatten(PTable<K,Iterable<V>> groupedTable);
+  
   /**
    * Applies (possibly recursively) an associative function to elements of lists contained in a
    * table.
