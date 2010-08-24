@@ -79,7 +79,7 @@ public class LazyTable<K, V> extends LazyCollection<Pair<K, V>> implements PTabl
   @Override
   public PTable<K, Iterable<V>> groupByKey(Ordering<V> order) {
     LazyTable<K, Iterable<V>> dest = new LazyTable<K, Iterable<V>>();
-    GroupByKey<K, V> groupByKey = new GroupByKey<K, V>(this, dest);
+    GroupByKey<K, V> groupByKey = new GroupByKey<K, V>(this, dest,order);
     dest.deferredOp = groupByKey;
     addDownOp(groupByKey);
     return dest;

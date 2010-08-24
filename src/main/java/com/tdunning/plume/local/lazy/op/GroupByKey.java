@@ -17,6 +17,7 @@
 
 package com.tdunning.plume.local.lazy.op;
 
+import com.google.common.collect.Ordering;
 import com.tdunning.plume.Pair;
 import com.tdunning.plume.local.lazy.LazyTable;
 
@@ -24,7 +25,14 @@ public class GroupByKey<K, V> extends OneToOneOp<Pair<K, V>, Pair<K, Iterable<V>
 
   LazyTable<K, V> origin;
   LazyTable<K, Iterable<V>> dest;
+  Ordering<V> order;
 
+  public GroupByKey(LazyTable<K, V> origin, LazyTable<K, Iterable<V>> dest, Ordering<V> order) {
+    this.origin = origin;
+    this.dest = dest;
+    this.order = order;
+  }
+  
   public GroupByKey(LazyTable<K, V> origin, LazyTable<K, Iterable<V>> dest) {
     this.origin = origin;
     this.dest = dest;
@@ -37,4 +45,8 @@ public class GroupByKey<K, V> extends OneToOneOp<Pair<K, V>, Pair<K, Iterable<V>
   public LazyTable<K, V> getOrigin() {
     return origin;
   }
+  
+  public Ordering<V> getOrdering() {
+	    return order;
+	  }
 }

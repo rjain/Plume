@@ -17,12 +17,13 @@
 
 package com.tdunning.plume.local.lazy;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.tdunning.plume.DoFn;
 import com.tdunning.plume.EmitFn;
 import com.tdunning.plume.PCollection;
@@ -81,18 +82,19 @@ public class Executor {
       } else if(op instanceof GroupByKey) {
         GroupByKey gBK = (GroupByKey) op;
         parent = execute(gBK.getOrigin());
-        Map<Object, List> groupMap = Maps.newHashMap();
+        Map<Object, Set> groupMap = Maps.newHashMap();
         // Perform in-memory group by operation
         for (Object obj : parent) {
           Pair p = (Pair)obj;
-          List list = groupMap.get(p.getKey());
-          if(list == null) {
-            list = new ArrayList();
+          Set valuesSet = groupMap.get(p.getKey());
+          if(valuesSet == null) {
+            valuesSet = Sets.newTreeSet(gBK.getOrdering());
+            groupMap.put(p.getKey(), valuesSet);
           }
-          list.add(p.getValue());
-          groupMap.put(p.getKey(), list);
+          valuesSet.add(p.getValue());
+          
         }
-        for (Map.Entry<Object, List> entry: groupMap.entrySet()) {
+        for (Map.Entry<Object, Set> entry: groupMap.entrySet()) {
           result.add((T)new Pair(entry.getKey(), entry.getValue()));
         }
       } 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.tdunning.plume.local;
+package com.tdunning.plume.local.lazy;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
@@ -34,17 +34,20 @@ import java.util.Iterator;
 
 import static com.tdunning.plume.Plume.strings;
 import static org.junit.Assert.*;
+import com.tdunning.plume.local.LogParseTest;
 
 /**
  * @author rjain
- * Test to verify  grouping and ordering of elements within each group 
+ * Test to verify  grouping and ordering of elements within each group, using the lazy execution model
  */
-public class LogParseTest {
+public class LogParseLazyTest extends LogParseTest {
   @Test
   public void parseGroupSort() throws IOException {
-    Plume p = new LocalPlume();
-    PCollection<String> logs = p.readResourceFile("log.txt");
-    PTable<String, Event> events = logs.map(new DoFn<String, Pair<String, Event>>() {
+    Plume p = new LazyPlume();
+    PCollection<String> logs = p.fromJava(p.readResourceFile("log.txt"));
+    
+    // generate key, value pairs for each log statement
+    LazyTable<String, Event> events = (LazyTable<String,Event>) p.flatten(logs).map(new DoFn<String, Pair<String, Event>>() {
       @Override
       public void process(String logLine, EmitFn<Pair<String, Event>> emitter) {
     	if (logLine.length()>0) {  
@@ -60,41 +63,21 @@ public class LogParseTest {
        };
     };
     
+    // add group by operation with ordering defined
     PTable<String, Iterable<Event>> byName = events.groupByKey(ordering); 
     
-    for (Pair<String,Iterable<Event>>logIter: byName) {
+    LazyTable<String,Iterable<Event>> byNameImpl = (LazyTable<String,Iterable<Event>>)byName;
+    
+    Executor executor = new Executor();
+    Iterable<Pair<String,Iterable<Event>>>result = executor.execute(byNameImpl);
+    
+    for (Pair<String,Iterable<Event>>logIter: result) {
     	//String nameKey = logIter.getKey();
     	Iterable<Event> chatEvents = logIter.getValue();
     	// check if ordering indeed happened in the result
+    	//System.out.println("key:" + logIter.getKey() + "; value: " + logIter.getValue());
     	assertTrue(ordering.isOrdered(chatEvents));
     }
   }
 
-  protected static final class Event implements Comparable<Event> {
-    private static final Splitter onWhiteSpace = Splitter.on(CharMatcher.BREAKING_WHITESPACE);
-    private String time;
-    private String name;
-    private String msg;
-
-    public Event(String logLine) {
-      //System.out.println(logLine);
-      Iterator<String> pieces = onWhiteSpace.split(logLine).iterator();
-      time = pieces.next();
-      name = pieces.next();
-      msg = pieces.next();
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public String getTime() {
-		return time;
-	} 
-
-	@Override
-    public int compareTo(Event o) {
-      return this.time.compareTo(o.getTime());
-    }
-  }
 }
